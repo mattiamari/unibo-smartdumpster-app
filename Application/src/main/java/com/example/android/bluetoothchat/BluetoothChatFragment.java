@@ -298,7 +298,8 @@ public class BluetoothChatFragment extends Fragment {
         }
     }
 
-    String doPost (URL url , byte [] payload ) throws IOException, JSONException {
+    String doPost (URL url) throws IOException, JSONException {
+        // FIXME use volley to make the request
         HttpURLConnection c = (HttpURLConnection)url.openConnection();
         c.setRequestMethod("POST");
         c.setDoOutput(true);
@@ -424,17 +425,19 @@ public class BluetoothChatFragment extends Fragment {
                     }
 
                     Toast.makeText(getActivity(), readBuf, Toast.LENGTH_SHORT).show();
-                    if(readBuf == "closed") {
-                        URL url = null;
+                    if(readBuf.equals("closed")) {
+                        final URL url;
                         String s = new String(buttonPressed);
                         byte bytes[] = s.getBytes();
                         try {
                             url = new URL("http://smartdumpster.mattiamari.me/api/v1/dumpster/"+dumpsterId+"/dump");
                         } catch (MalformedURLException e) {
                             e.printStackTrace();
+                            break;
                         }
+
                         try {
-                            doPost(url, bytes);
+                            doPost(url);
                         } catch (IOException e) {
                             e.printStackTrace();
                         } catch (JSONException e) {
