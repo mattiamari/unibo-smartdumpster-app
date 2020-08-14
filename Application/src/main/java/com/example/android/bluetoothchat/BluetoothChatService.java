@@ -24,7 +24,6 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.widget.Toast;
 
 import com.example.android.common.logger.Log;
 
@@ -499,9 +498,6 @@ public class BluetoothChatService {
                     // Read from the InputStream
 
                     read = r.readLine();
-
-
-
 
                     // Send the obtained bytes to the UI Activity
                     mHandler.obtainMessage(Constants.MESSAGE_READ, read)
