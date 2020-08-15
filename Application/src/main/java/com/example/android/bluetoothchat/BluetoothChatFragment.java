@@ -18,6 +18,7 @@ package com.example.android.bluetoothchat;
 
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.DownloadManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
@@ -46,8 +47,20 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkResponse;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.HttpHeaderParser;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.example.android.common.logger.Log;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -55,6 +68,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -298,10 +312,10 @@ public class BluetoothChatFragment extends Fragment {
         }
     }
 
-    String doPost (URL url) throws IOException, JSONException {
+     public void doPost(String url) throws IOException, JSONException {
         // FIXME use volley to make the request
-        HttpURLConnection c = (HttpURLConnection)url.openConnection();
-        c.setRequestMethod("POST");
+        //HttpURLConnection c = (HttpURLConnection)url.openConnection();
+        /*c.setRequestMethod("POST");
         c.setDoOutput(true);
         c.setRequestProperty("Content-Type", "application/json");
 
@@ -309,18 +323,63 @@ public class BluetoothChatFragment extends Fragment {
         SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
         String defaultUUID = sharedPref.getString("myUUID", UUID.randomUUID().toString());
         dati.put("user_id", defaultUUID);
-        dati.put("dump_type", buttonPressed);
+        dati.put("dump_type", buttonPressed);*/
+        try {
+            RequestQueue requestQueue = Volley.newRequestQueue(getContext());
 
-        Log.d("", url.toString());
-        Log.d("", dati.toString());
 
-        OutputStreamWriter wr = new OutputStreamWriter(c.getOutputStream());
-        wr.write(dati.toString());
-        if(c.getResponseCode() == HttpURLConnection.HTTP_OK ) {
-            return readStream(c.getInputStream());
+
+            SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+            String defaultUUID = sharedPref.getString("myUUID", UUID.randomUUID().toString());
+            JSONObject jsonBody = new JSONObject();
+            jsonBody.put("user_id", defaultUUID);
+            jsonBody.put("dump_type", buttonPressed);
+            final String requestBody = jsonBody.toString();
+
+
+            StringRequest stringRequest = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    Log.i("VOLLEY", response);
+                }
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    Log.e("VOLLEY", error.toString());
+                }
+            }) {
+                @Override
+                public String getBodyContentType() {
+                    return "application/json";
+                }
+
+                @Override
+                public byte[] getBody() throws AuthFailureError {
+                    try {
+                        return requestBody == null ? null : requestBody.getBytes("utf-8");
+                    } catch (UnsupportedEncodingException uee) {
+                        VolleyLog.wtf("Unsupported Encoding while trying to get the bytes of %s using %s", requestBody, "utf-8");
+                        return null;
+                    }
+                }
+
+                @Override
+                protected Response<String> parseNetworkResponse(NetworkResponse response) {
+                    String responseString = "";
+                    if (response != null) {
+                        responseString = String.valueOf(response.statusCode);
+                        // can get more details such as response.headers
+                    }
+                    return Response.success(responseString, HttpHeaderParser.parseCacheHeaders(response));
+                }
+            };
+
+            requestQueue.add(stringRequest);
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
-        return null;
     }
+
 
     private String readStream(InputStream is) {
         try {
@@ -425,17 +484,12 @@ public class BluetoothChatFragment extends Fragment {
                     }
 
                     Toast.makeText(getActivity(), readBuf, Toast.LENGTH_SHORT).show();
+                    String url = "";
                     if(readBuf.equals("closed")) {
-                        final URL url;
+
                         String s = new String(buttonPressed);
                         byte bytes[] = s.getBytes();
-                        try {
-                            url = new URL("http://smartdumpster.mattiamari.me/api/v1/dumpster/"+dumpsterId+"/dump");
-                        } catch (MalformedURLException e) {
-                            e.printStackTrace();
-                            break;
-                        }
-
+                        url = "https://smartdumpster.mattiamari.me/api/v1/dumpster/"+dumpsterId+"/dump";
                         try {
                             doPost(url);
                         } catch (IOException e) {
@@ -443,7 +497,11 @@ public class BluetoothChatFragment extends Fragment {
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
+
                     }
+
+
+
                     mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readBuf);
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:

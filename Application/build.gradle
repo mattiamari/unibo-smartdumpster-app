@@ -19,6 +19,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 29
 
+
     defaultConfig {
         minSdkVersion 24
         targetSdkVersion 29
@@ -33,4 +34,5 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'com.android.volley:volley:1.1.1'
 }
