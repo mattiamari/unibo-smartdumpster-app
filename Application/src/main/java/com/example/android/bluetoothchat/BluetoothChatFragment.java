@@ -90,8 +90,6 @@ public class BluetoothChatFragment extends Fragment {
 
     // Layout Views
     private ListView mConversationView;
-    private EditText mOutEditText;
-    private Button mSendButton;
     private Button mButtonPaper;
     private Button mButtonPlastic;
     private Button mButtonUndifferentiated;
@@ -187,8 +185,6 @@ public class BluetoothChatFragment extends Fragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         mConversationView = view.findViewById(R.id.in);
-        mOutEditText = view.findViewById(R.id.edit_text_out);
-        mSendButton = view.findViewById(R.id.button_send);
         mButtonPaper = view.findViewById(R.id.paper);
         mButtonPlastic = view.findViewById(R.id.plastic);
         mButtonUndifferentiated = view.findViewById(R.id.undifferentiated);
@@ -210,21 +206,6 @@ public class BluetoothChatFragment extends Fragment {
 
         mConversationView.setAdapter(mConversationArrayAdapter);
 
-        // Initialize the compose field with a listener for the return key
-        mOutEditText.setOnEditorActionListener(mWriteListener);
-
-        // Initialize the send button with a listener that for click events
-        mSendButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Send a message using content of the edit text widget
-                View view = getView();
-                if (null != view) {
-                    TextView textView = view.findViewById(R.id.edit_text_out);
-                    String message = textView.getText().toString();
-                    sendMessage(message);
-                }
-            }
-        });
 
         mButtonPaper.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -308,7 +289,6 @@ public class BluetoothChatFragment extends Fragment {
 
             // Reset out string buffer to zero and clear the edit text field
             mOutStringBuffer.setLength(0);
-            mOutEditText.setText(mOutStringBuffer);
         }
     }
 
@@ -378,6 +358,45 @@ public class BluetoothChatFragment extends Fragment {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+    }
+
+    public void doGet(String url) throws IOException, JSONException {
+        // FIXME use volley to make the request
+        //HttpURLConnection c = (HttpURLConnection)url.openConnection();
+        /*c.setRequestMethod("POST");
+        c.setDoOutput(true);
+        c.setRequestProperty("Content-Type", "application/json");
+
+        JSONObject dati = new JSONObject();
+        SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+        String defaultUUID = sharedPref.getString("myUUID", UUID.randomUUID().toString());
+        dati.put("user_id", defaultUUID);
+        dati.put("dump_type", buttonPressed);*/
+        RequestQueue requestQueue = Volley.newRequestQueue(getContext());
+
+
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                Log.i("VOLLEY", response);
+                mButtonPaper.setEnabled(true);
+                mButtonPlastic.setEnabled(true);
+                mButtonUndifferentiated.setEnabled(true);
+                mButtonPostponeClose.setEnabled(true);
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e("VOLLEY", error.toString());
+                mButtonPaper.setEnabled(false);
+                mButtonPlastic.setEnabled(false);
+                mButtonUndifferentiated.setEnabled(false);
+                mButtonPostponeClose.setEnabled(false);
+            }
+        }) {
+        };
+
+        requestQueue.add(stringRequest);
     }
 
 
@@ -481,9 +500,15 @@ public class BluetoothChatFragment extends Fragment {
 
                     if(readBuf.length() > 30) {
                         dumpsterId = readBuf;
+                        try {
+                            doGet("https://smartdumpster.mattiamari.me/api/v1/dumpster/"+dumpsterId+"/token");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
                     }
 
-                    Toast.makeText(getActivity(), readBuf, Toast.LENGTH_SHORT).show();
                     String url = "";
                     if(readBuf.equals("closed")) {
 
@@ -523,7 +548,7 @@ public class BluetoothChatFragment extends Fragment {
 
                             // Reset out string buffer to zero and clear the edit text field
                             mOutStringBuffer.setLength(0);
-                            mOutEditText.setText(mOutStringBuffer);
+
                         }
 
                     }
